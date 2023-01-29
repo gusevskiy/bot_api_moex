@@ -29,3 +29,4 @@ def search_ticker_name_close_prise(name: str) -> tuple:
 
 
 print("search_ticker_name_close_prise", search_ticker_name_close_prise("Сбер"))
+

@@ -3,8 +3,8 @@ import requests
 import os
 
 from dotenv import load_dotenv
-import telegram
-from telegram.ext import Updater, MessageHandler, Filters
+import telegram 
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
 
 load_dotenv()
@@ -37,11 +37,6 @@ def search_ticker_name_close_prise(name: str) -> list:
     return data
 
 
-# def send_message(bot: telegram.bot.Bot, message: str) -> None:
-#     """Send message in telegram."""
-#     bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-
-
 def main(update, context):
     chat = update.effective_chat
     text_ticker = update.message.text
@@ -52,7 +47,19 @@ def main(update, context):
             text=f'{message[2]}, Цена 1й акции = {message[1]} руб.')
 
 
+def say_hi(update, context):
+    chat = update.effective_chat
+    name = update.message.chat.first_name
+    context.bot.send_message(
+        chat_id=chat.id,
+        text=(f'Привет {name}! \n' 
+        f'бот ищет по названию все совпадения в названиях компаний которые торгуются на ММВБ в режиме TQBR (T+2) и предоставляет цены закрытия предыдущей торговой сессии, также доходность за текущий год и доходность от момента покупки год назад.\n Введи любое название которое знаешь, например: "Сбер".'))
+    # updater.bot.answer_callback_query(callback_query_id=chat, show_alert=True, text='привет', cache_time=100)
+
+# CommandHandler должен находится выше
+updater.dispatcher.add_handler(CommandHandler('help', say_hi))
 updater.dispatcher.add_handler(MessageHandler(Filters.text, main))
+
 
 updater.start_polling()
 updater.idle()
