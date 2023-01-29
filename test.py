@@ -1,14 +1,10 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import requests
 
 
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+url = "https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR" \
+      "/securities.json?iss.meta=off&iss.only=securities&securities.columns" \
+      "=SECID,PREVADMITTEDQUOTE,SECNAME"
+all_tickers = requests.get(url)#.json().get('securities')['data']
 
-YOUR_TOKEN_HERE = '5891863496:AAF2MemwhNDKNBX3Ok7BcBwmC48SXHj4C6s'
 
-app = ApplicationBuilder().token(YOUR_TOKEN_HERE).build()
-
-app.add_handler(CommandHandler("hello", hello))
-
-app.run_polling()
+print(all_tickers.json())
