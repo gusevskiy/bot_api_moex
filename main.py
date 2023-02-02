@@ -29,7 +29,6 @@ def ticker_search(secname: str) -> list:
     """
     list_tikers = []
     keys = ['SECID', 'PREVADMITTEDQUOTE', 'SECNAME', 'PREVDATE']
-    # tickers = {}
     url = "https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR" \
           "/securities.json?iss.meta=off&iss.only=securities&securities" \
           ".columns=SECID,PREVADMITTEDQUOTE,SECNAME,PREVDATE"
@@ -39,27 +38,46 @@ def ticker_search(secname: str) -> list:
         if secname.lower() in names[2].lower():
             tickers = dict(zip(keys, names))
             list_tikers.append(tickers)
+    print('нашли по слову', list_tikers)
     return list_tikers
 
 
-def old_price(tikers, trading_date=date.today()-timedelta(days=360)):
-    # print(trading_date)
-    ticker_price = []
-    for tiker in tikers:
-        # print(tiker)
-        url = (f"https://iss.moex.com/iss/history/engines/stock/markets/shares/"
-               f"boards/TQBR/securities/{tiker.get('SECID')}/.json?"
-               f"iss.meta=off&"
-               f"iss.only=history&"
-               f"history.columns=TRADEDATE,SHORTNAME,CLOSE&"
-               f"from={trading_date}&till={trading_date}")
-        all_tickers = requests.get(url).json().get('history')['data']
-        ticker_price.append(all_tickers)
-    return ticker_price
-
-
-def profitability(ticker):
-    ...
+def search_ticker_price(tickers):
+    tikers_name_price = []
+    for ticker in tickers:
+        ticker = ticker.get('SECID')
+        print(ticker)
+        
+        start = 0
+        stop_while = 0
+        while stop_while <= 100:
+            # Документация  https://iss.moex.com/iss/reference/825
+            url = (
+                f'https://iss.moex.com/iss/history/'
+                f'engines/stock/'
+                f'markets/shares/'
+                f'session/TQBR/'
+                f'boardgroups/57/'
+                f'securities.json?'
+                f'iss.meta=off'
+                f'&data=2023-01-31'
+                f'&security_type_id=3,1'
+                f'&tradingsession=1'
+                f'&start={start}'
+                f'&iss.only=history'
+                f'&history.columns=SECID,LEGALCLOSEPRICE'
+            )
+            list_data = requests.get(url).json().get('history')['data']
+            stop_while = len(list_data)
+            keys = ['SECID', 'LEGALCLOSEPRICE']
+            for name in list_data:
+                if name[0] == ticker:
+                    tickers = dict(zip(keys, name))
+                    tikers_name_price.append(tickers)
+            if stop_while < 100:
+                break
+            start += 100
+    return tikers_name_price
 
 
 def main(update, context):
@@ -94,6 +112,6 @@ if __name__ == '__main__':
     # updater.start_polling()
     # updater.idle()
     # print(main)
-    r = ticker_search('Сбер')
-    print(r)
-    print(old_price(r))
+    r = ticker_search('Яку')
+    # print(r)
+    print(search_ticker_price(r))
