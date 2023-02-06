@@ -3,68 +3,67 @@ import requests
 import os
 
 from dotenv import load_dotenv
-import telegram 
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes
+)
 
 
-load_dotenv()
-
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-updater = Updater(token=TELEGRAM_TOKEN)
+len_text = [['SBER', 'Сбербанк России ПАО ао'],
+            ['SBERP', 'Сбербанк России ПАО ап']]
+# len_text = ['one', 'two', 'tree']
 
 
-def check_tokens() -> bool:
-    """Check variables(TOKENS) в .env"""
-    # logging.info("Checking tokens")
-    return all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Отправляет сообщение с тремя встроенными кнопками."""
+    keyboard = []
+    for x in len_text:
+        keyboard.append([InlineKeyboardButton(text=x[1], callback_data='1')])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        "По введеному {} есть такие эмитенты:",
+        reply_markup=reply_markup
+    )
 
 
-def search_ticker_name_close_prise(name: str) -> list:
-    """
-    This function search ticker, name, price
-    name: here in Cyrillic
-    """
-    data = []
-    url = "https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR" \
-          "/securities.json?iss.meta=off&iss.only=securities&securities" \
-          ".columns=SECID,PREVADMITTEDQUOTE,SECNAME"
-    all_tickers = requests.get(url).json().get('securities')['data']
-    for ticker in all_tickers:
-        if name.lower() in ticker[2].lower():
-            data.append(ticker)
-    return data
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Разбирает CallbackQuery и обновляет текст сообщения."""
+    query = update.callback_query
+
+    # CallbackQueries требуют ответа, даже если уведомление пользователю не требуется
+    # В противном случае у некоторых клиентов могут возникнуть проблемы. См. https://core.telegram.org/bots/api#callbackquery 55
+    await query.answer()
+
+    await query.edit_message_text(text=f"Selected option: {query.data}")
 
 
-def main(update, context):
-    chat = update.effective_chat
-    text_ticker = update.message.text
-    data = list(search_ticker_name_close_prise(text_ticker))
-    for message in data:
-        context.bot.send_message(
-            chat_id=chat.id,
-            text=f'{message[2]}, Цена 1й акции = {message[1]} руб.')
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Displays info on how to use the bot."""
+    await update.message.reply_text("Use /start to test this bot.")
 
 
-def say_hi(update, context):
-    chat = update.effective_chat
-    name = update.message.chat.first_name
-    context.bot.send_message(
-        chat_id=chat.id,
-        text=(f'Привет {name}! \n' 
-        f'бот ищет по названию все совпадения в названиях компаний которые торгуются на ММВБ в режиме TQBR (T+2) и предоставляет цены закрытия предыдущей торговой сессии, также доходность за текущий год и доходность от момента покупки год назад.\n Введи любое название которое знаешь, например: "Сбер".'))
+def main() -> None:
+    """Run the bot."""
+    load_dotenv()
+
+    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+    TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+    """Run the bot."""
+    # Create the Application and pass it your bot's token.
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button))
+    application.add_handler(CommandHandler("help", help_command))
+
+    # Run the bot until the user presses Ctrl-C
+    application.run_polling()
 
 
-# CommandHandler должен находится выше
-updater.dispatcher.add_handler(CommandHandler('help', say_hi))
-updater.dispatcher.add_handler(MessageHandler(Filters.text, main))
-
-
-
-updater.start_polling()
-updater.idle()
-
-# if __name__ == '__main__':
-#     main('Сбер')
-    # print(search_ticker_name_close_prise('Сбер')[0][2])
+if __name__ == "__main__":
+    main()
