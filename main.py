@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 
+
 len_text = [['SBER', 'Сбербанк России ПАО ао'],
             ['SBERP', 'Сбербанк России ПАО ап']]
 # len_text = ['one', 'two', 'tree']
@@ -53,7 +54,6 @@ def main() -> None:
 
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-    """Run the bot."""
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
