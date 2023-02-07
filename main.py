@@ -4,22 +4,14 @@ import os
 from datetime import date, timedelta
 
 from dotenv import load_dotenv
-import telegram 
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
-
-
-load_dotenv()
-
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-updater = Updater(token=TELEGRAM_TOKEN)
-
-
-def check_tokens() -> bool:
-    """Check variables(TOKENS) в .env"""
-    # logging.info("Checking tokens")
-    return all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
+from telegram import Update
+from telegram.ext import (
+    MessageHandler,
+    filters,
+    CommandHandler,
+    ApplicationBuilder,
+    ContextTypes
+)
 
 
 def ticker_search(secname: str) -> list:
@@ -80,20 +72,20 @@ def search_ticker_price(tickers):
     return tikers_name_price
 
 
-def main(update, context):
+async def show_ticker(update, context):
     chat = update.effective_chat
     text_ticker = update.message.text
     data = list(ticker_search(text_ticker))
     for message in data:
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id=chat.id,
-            text=f'{message[2]}, Цена 1й акции = {message[1]} руб.')
+            text=message)
 
 
-def say_hi(update, context):
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     name = update.message.chat.first_name
-    context.bot.send_message(
+    await context.bot.send_message(
         chat_id=chat.id,
         text=(f'Привет {name}! \n' 
         f'бот ищет по названию все совпадения в названиях компаний которые '
@@ -105,13 +97,19 @@ def say_hi(update, context):
 
 
 if __name__ == '__main__':
+    load_dotenv()
+
+    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     # CommandHandler должен находится выше
-    # updater.dispatcher.add_handler(CommandHandler('help', say_hi))
-    # updater.dispatcher.add_handler(MessageHandler(Filters.text, main))
-    #
-    # updater.start_polling()
-    # updater.idle()
+    help_handler = CommandHandler('help', help)
+    massage_handler = MessageHandler(filters.TEXT, show_ticker)
+    
+    application.add_handler(massage_handler)
+    
+    application.run_polling()
+    
     # print(main)
-    r = ticker_search('Яку')
+    # r = ticker_search('Яку')
     # print(r)
-    print(search_ticker_price(r))
+    # print(search_ticker_price(r))

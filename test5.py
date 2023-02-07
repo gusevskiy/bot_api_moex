@@ -1,15 +1,14 @@
 
-tikers = [{'SECID': 'SBER', 'PREVADMITTEDQUOTE': None, 'SECNAME': 'Сбербанк России ПАО ао', 'PREVDATE': '2023-02-01'}, {'SECID': 'SBERP', 'PREVADMITTEDQUOTE': None, 'SECNAME': 'Сбербанк России ПАО ап', 'PREVDATE': '2023-02-01'}]
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 
-# tikers_keys = ['SECID', 'LEGALCLOSEPRICE']
-# for i in tikers:
-#     if i[0] == 'SBER':
-#         tikers_dict = zip(dict(tikers_keys, i))
-#         tikers_name_price.append(tikers_dict)
-
-# if __name__ == '__main__':
-#     print(search_ticker_price(tikers))
+async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
 
 
-print(tikers[0].get('SBER'))
+app = ApplicationBuilder().token("5891863496:AAG5t31e8Rq8KVjHhgCHPTcqL8rImjTQcNo").build()
+
+app.add_handler(CommandHandler("hello", hello))
+
+app.run_polling()
