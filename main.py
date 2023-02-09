@@ -100,7 +100,7 @@ if __name__ == '__main__':
     load_dotenv()
 
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    application = ApplicationBuilder().token('5891863496:AAEI1uL9hhSwvv9PWokrUTQ4aN3jq-IdSs0').build()
     # CommandHandler должен находится выше
     help_handler = CommandHandler('help', help)
     massage_handler = MessageHandler(filters.TEXT, show_ticker)
