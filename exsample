@@ -7,3 +7,6 @@ securities.json?iss.meta=off&iss.only=marketdata&marketdata.columns=SECID,
 LAST&tradingsession=1&securities=GAZP,AFLT,LKOH"
 
 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'
+
+
+остановить цикл по колличеству строк последней выдачи
