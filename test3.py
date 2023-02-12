@@ -28,10 +28,10 @@ def search_ticker_price(tickers):
             )
             list_data = requests.get(url).json().get('history')['data']
             stop_while = len(list_data)
-            keys = ['SECID', 'LEGALCLOSEPRICE']
+            # keys = ['SECID', 'LEGALCLOSEPRICE']
             for name in list_data:
                 if name[0] == ticker:
-                    tickers = dict(zip(keys, name))
+                    # tickers = dict(zip(keys, name))
                     tikers_name_price.append(tickers)
             if stop_while < 100:
                 break
