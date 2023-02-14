@@ -5,13 +5,18 @@ from datetime import date, timedelta
 from pprint import pprint
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+)
 from telegram.ext import (
     Updater,
     MessageHandler,
     Filters,
     CommandHandler,
-    ContextTypes
+    ContextTypes,
+    CallbackQueryHandler
 )
 
 
@@ -34,21 +39,27 @@ def ticker_search(update, context) -> list:
     for names in all_names:
         if word.upper() in names[1].upper():
             list_tikers.append(names)
-    print(f'{name} нашли по слову', list_tikers)
+    print(f'{word} нашли по слову', list_tikers)
     create_buttom(update, list_tikers)
     return list_tikers
 
+
 def create_buttom(update, data):
+    word = update.message.text
     keyboard = []
     for x in data:
-        keyboard.append([InlineKeyboardButton(
-            text=x[1], callback_data='1')]
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=x[1], callback_data=x[0]
+                )
+            ]
         )
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     return update.message.reply_text(
-        "По введеному {} есть такие эмитенты:",
+        f"По слову <b>{word}</b> есть такие эмитенты:", parse_mode='html',
         reply_markup=reply_markup
     )
 
@@ -114,6 +125,11 @@ def search_ticker_price(tickers):
 #               f'текущий год и доходность от момента покупки год назад.\n '
 #               f'Введи любое название которое знаешь, например: "Сбер".'))
 
+# тестовая ф-я потом удалить
+def input(update, context):
+    chat = update.effective_chat
+    message = update.callback_query.data
+    context.bot.send_message(chat_id=chat.id, text=message)
 
 if __name__ == '__main__':
     load_dotenv()
@@ -123,7 +139,7 @@ if __name__ == '__main__':
     # CommandHandler должен находится выше
     help_handler = CommandHandler('help', help)
     updater.dispatcher.add_handler(MessageHandler(Filters.text, ticker_search))
-    
+    updater.dispatcher.add_handler(CallbackQueryHandler(input))
     # application.add_handler(massage_handler)
 
 
