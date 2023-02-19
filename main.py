@@ -25,8 +25,8 @@ updater = Updater(token='5891863496:AAGYFOD5XMc5IZCJl92tjxlaBDG_DNNXC9w')
 
 def ticker_search(update, context) -> list:
     """
-    This function search ticker, name, price
-    name: here in Cyrillic
+    This function search ticker, name, price in list everyone tickers
+    name: here in Cyrillic in application telegram
     """
     chat = update.effective_chat
     name = update.message.chat.first_name
@@ -45,6 +45,7 @@ def ticker_search(update, context) -> list:
 
 
 def create_buttom(update, data):
+    """This function created buttom"""
     word = update.message.text
     keyboard = []
     for x in data:
@@ -65,41 +66,42 @@ def create_buttom(update, data):
 
 
 def search_ticker_price(tickers):
-    tikers_name_price = []
-    for ticker in tickers:
-        ticker = ticker.get('SECID')
-        print(ticker)
-        
-        start = 0
-        stop_while = 0
-        while stop_while <= 100:
-            # Документация  https://iss.moex.com/iss/reference/825
-            url = (
-                f'https://iss.moex.com/iss/history/'
-                f'engines/stock/'
-                f'markets/shares/'
-                f'session/TQBR/'
-                f'boardgroups/57/'
-                f'securities.json?'
-                f'iss.meta=off'
-                f'&data=2023-01-31'
-                f'&security_type_id=3,1'
-                f'&tradingsession=1'
-                f'&start={start}'
-                f'&iss.only=history'
-                f'&history.columns=SECID,LEGALCLOSEPRICE'
-            )
-            list_data = requests.get(url).json().get('history')['data']
-            stop_while = len(list_data)
-            keys = ['SECID', 'LEGALCLOSEPRICE']
-            for name in list_data:
-                if name[1] == ticker:
-                    tickers = dict(zip(keys, name))
-                    tikers_name_price.append(tickers)
-            if stop_while < 100:
-                break
-            start += 100
-    return tikers_name_price
+    """
+    Получает цены по всем бумагам в заданной секции на дату.
+    По тикеру ищет его цену закрытия дневной сессии.
+    """
+    tikers_name_price = {}
+    start = 0
+    stop_while = 0
+    while stop_while <= 100:
+        # Документация  https://iss.moex.com/iss/reference/825
+        url = (
+            f'https://iss.moex.com/iss/history/'
+            f'engines/stock/'
+            f'markets/shares/'
+            f'session/TQBR/'
+            f'boardgroups/57/'
+            f'securities.json?'
+            f'iss.meta=off'
+            f'&data=2023-01-31'
+            f'&security_type_id=3,1'
+            f'&tradingsession=1'
+            f'&start={start}'
+            f'&iss.only=history'
+            f'&history.columns=SECID,SHORTNAME,LEGALCLOSEPRICE'
+        )
+        list_data = requests.get(url).json().get('history')['data']
+        stop_while = len(list_data)
+        keys = ['SECID', 'SHORTNAME', 'LEGALCLOSEPRICE']
+        for name in list_data:
+            if name[0] == tickers:
+                tickers = dict(zip(keys, name))
+                tikers_name_price.update(tickers)
+                return tikers_name_price
+        if stop_while < 100:
+            break
+        start += 100
+
 
 
 # async def show_ticker(update, context):
@@ -125,15 +127,20 @@ def search_ticker_price(tickers):
 #               f'текущий год и доходность от момента покупки год назад.\n '
 #               f'Введи любое название которое знаешь, например: "Сбер".'))
 
+
+
 # тестовая ф-я потом удалить
+
 def input(update, context):
     chat = update.effective_chat
-    message = update.callback_query.data
+    ticker = update.callback_query.data
+    data = search_ticker_price(ticker)
+    message = f"Цена акции '{data.get('SHORTNAME')}' = {data.get('LEGALCLOSEPRICE')}р."
     context.bot.send_message(chat_id=chat.id, text=message)
 
-if __name__ == '__main__':
-    load_dotenv()
 
+def main():
+    load_dotenv()
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     # application = ApplicationBuilder().token('5891863496:AAGGUZiQbs_r80c-3TfJ2t-UUM1stkN2_3I').build()
     # CommandHandler должен находится выше
@@ -141,13 +148,14 @@ if __name__ == '__main__':
     updater.dispatcher.add_handler(MessageHandler(Filters.text, ticker_search))
     updater.dispatcher.add_handler(CallbackQueryHandler(input))
     # application.add_handler(massage_handler)
-
-
-
     updater.start_polling()
     updater.idle()
+
+
+if __name__ == '__main__':
+    main()
     
     # print(main)
-    # r = ticker_search('Яку')
+    # r = ticker_search('гмк')
     # print(r)
-    # print(search_ticker_price(r))
+    # print(search_ticker_price('AFKS'))
