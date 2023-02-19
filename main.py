@@ -1,115 +1,132 @@
 # coding: utf-8
 import requests
 import os
-from datetime import date, timedelta
+from datetime import date
 
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 from telegram.ext import (
+    Updater,
     MessageHandler,
-    filters,
+    Filters,
     CommandHandler,
-    ApplicationBuilder,
-    ContextTypes
+    CallbackQueryHandler
 )
 
 
-def ticker_search(secname: str) -> list:
+def ticker_search(update, context) -> list:
     """
-    This function search ticker, name, price
-    name: here in Cyrillic
+    This function search ticker, name, price in list everyone tickers
+    name: here in Cyrillic in application telegram
     """
+    word = update.message.text
     list_tikers = []
-    keys = ['SECID', 'PREVADMITTEDQUOTE', 'SECNAME', 'PREVDATE']
     url = "https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR" \
           "/securities.json?iss.meta=off&iss.only=securities&securities" \
-          ".columns=SECID,PREVADMITTEDQUOTE,SECNAME,PREVDATE"
-    # print(requests.get(url).text)
+          ".columns=SECID,SECNAME"
     all_names = requests.get(url).json().get('securities')['data']
     for names in all_names:
-        if secname.lower() in names[2].lower():
-            tickers = dict(zip(keys, names))
-            list_tikers.append(tickers)
-    print('нашли по слову', list_tikers)
-    return list_tikers
+        if word.upper() in names[1].upper():
+            list_tikers.append(names)
+    create_buttom(update, list_tikers)
+
+
+def create_buttom(update, data):
+    """This function created buttom"""
+    word = update.message.text
+    keyboard = []
+    for x in data:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=x[1], callback_data=x[0]
+                )
+            ]
+        )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    return update.message.reply_text(
+        f"По слову <b>{word}</b> есть такие эмитенты:", parse_mode='html',
+        reply_markup=reply_markup
+    )
 
 
 def search_ticker_price(tickers):
-    tikers_name_price = []
-    for ticker in tickers:
-        ticker = ticker.get('SECID')
-        print(ticker)
-        
-        start = 0
-        stop_while = 0
-        while stop_while <= 100:
-            # Документация  https://iss.moex.com/iss/reference/825
-            url = (
-                f'https://iss.moex.com/iss/history/'
-                f'engines/stock/'
-                f'markets/shares/'
-                f'session/TQBR/'
-                f'boardgroups/57/'
-                f'securities.json?'
-                f'iss.meta=off'
-                f'&data=2023-01-31'
-                f'&security_type_id=3,1'
-                f'&tradingsession=1'
-                f'&start={start}'
-                f'&iss.only=history'
-                f'&history.columns=SECID,LEGALCLOSEPRICE'
-            )
-            list_data = requests.get(url).json().get('history')['data']
-            stop_while = len(list_data)
-            keys = ['SECID', 'LEGALCLOSEPRICE']
-            for name in list_data:
-                if name[0] == ticker:
-                    tickers = dict(zip(keys, name))
-                    tikers_name_price.append(tickers)
-            if stop_while < 100:
-                break
-            start += 100
-    return tikers_name_price
+    """
+    Получает цены по всем бумагам в заданной секции на дату.
+    По тикеру ищет его цену закрытия дневной сессии.
+    Документация на ссылку https://iss.moex.com/iss/reference/825
+    """
+    tikers_name_price = {}
+    start = 0
+    stop_while = 0
+    while stop_while <= 100:
+
+        url = (
+            f'https://iss.moex.com/iss/history/'
+            f'engines/stock/'
+            f'markets/shares/'
+            f'session/TQBR/'
+            f'boardgroups/57/'
+            f'securities.json?'
+            f'iss.meta=off'
+            f'&data={date.today()}'
+            f'&security_type_id=3,1'
+            f'&tradingsession=1'
+            f'&start={start}'
+            f'&iss.only=history'
+            f'&history.columns=SECID,SHORTNAME,LEGALCLOSEPRICE,TRADEDATE'
+        )
+        list_data = requests.get(url).json().get('history')['data']
+        stop_while = len(list_data)
+        keys = ['SECID', 'SHORTNAME', 'LEGALCLOSEPRICE', 'TRADEDATE']
+        for name in list_data:
+            if name[0] == tickers:
+                tickers = dict(zip(keys, name))
+                tikers_name_price.update(tickers)
+                return tikers_name_price
+        if stop_while < 100:
+            break
+        start += 100
 
 
-async def show_ticker(update, context):
-    chat = update.effective_chat
-    text_ticker = update.message.text
-    data = list(ticker_search(text_ticker))
-    for message in data:
-        await context.bot.send_message(
-            chat_id=chat.id,
-            text=message)
-
-
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def help(update, context):
     chat = update.effective_chat
     name = update.message.chat.first_name
-    await context.bot.send_message(
+    context.bot.send_message(
         chat_id=chat.id,
-        text=(f'Привет {name}! \n' 
-        f'бот ищет по названию все совпадения в названиях компаний которые '
-              f'торгуются на ММВБ в режиме TQBR (T+2) и предоставляет цены '
-              f'за предыдущую торговую сессию'
-              f'закрытия предыдущей торговой сессии, также доходность за '
-              f'текущий год и доходность от момента покупки год назад.\n '
-              f'Введи любое название которое знаешь, например: "Сбер".'))
+        text=(
+            f'Привет {name}! \n' 
+            f'бот ищет по названию все совпадения в названиях компаний которые'
+            f' торгуются на ММВБ в режиме TQBR (T+2) и предоставляет цены '
+            f'за предыдущую торговую сессию. \n'
+            f'Введи любое название которое знаешь, например: "Сбер".'
+        )
+    )
+
+
+def push_buttom(update, context):
+    chat = update.effective_chat
+    ticker = update.callback_query.data
+    data = search_ticker_price(ticker)
+    message = f"На дату {data.get('TRADEDATE')} цена акции " \
+              f"'{data.get('SHORTNAME')}' =" \
+              f" {data.get('LEGALCLOSEPRICE')}р."
+    context.bot.send_message(chat_id=chat.id, text=message)
+
+
+def main():
+    load_dotenv()
+    token = os.getenv('TELEGRAM_TOKEN')
+    updater = Updater(token=token)
+    updater.dispatcher.add_handler(CommandHandler('help', help))
+    updater.dispatcher.add_handler(MessageHandler(Filters.text, ticker_search))
+    updater.dispatcher.add_handler(CallbackQueryHandler(push_buttom))
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == '__main__':
-    load_dotenv()
-
-    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-    application = ApplicationBuilder().token('5891863496:AAEI1uL9hhSwvv9PWokrUTQ4aN3jq-IdSs0').build()
-    # CommandHandler должен находится выше
-    help_handler = CommandHandler('help', help)
-    massage_handler = MessageHandler(filters.TEXT, show_ticker)
-    
-    application.add_handler(massage_handler)
-    
-    application.run_polling()
-    
-    # print(main)
-    # r = ticker_search('Яку')
-    # print(r)
-    # print(search_ticker_price(r))
+    main()
