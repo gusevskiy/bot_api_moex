@@ -1,6 +1,6 @@
 # bot_api_moex
 bot telegram for receiving prices stock in stock exchange moex
-
+<img src='window_bot.png'>
 ### [Documentation python-telegram-bot - 13.7](https://docs.python-telegram-bot.org/en/v13.7/index.html)
 
 ### 1) install libraries
