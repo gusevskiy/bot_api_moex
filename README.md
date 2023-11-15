@@ -8,7 +8,7 @@ bot telegram for receiving prices stock in stock exchange moex
 ```bash
 pip install requests
 pip install python-dotenv
-pip install telegram-telegram-bot==13.7
+pip install python-telegram-bot==13.7
 ```
 ### 2) create .env
 ##### put two variables there
